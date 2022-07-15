@@ -4,5 +4,7 @@ hyena.core
 hyena.sock
 config.h
 config.log
+config.h.old
+config.log.old
 Makefile.configure
 tags

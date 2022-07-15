@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Ezra Bravo <srgl@posteo.de>
+ * Copyright (c) 2021 wolf <wolf@fastmail.co.uk>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,7 +29,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#ifdef HAVE_CAPSICUM
+#if HAVE_CAPSICUM
 #include <sys/resource.h>
 #include <sys/capsicum.h>
 #endif
@@ -99,7 +99,11 @@ file_getrand(dirlist_t ds, int idx)
 	if (ds.len == 0)
 		errx(EXIT_FAILURE, "file_getrand: no files in `%s'", ds.path);
 	if (idx == -1)
+#if HAVE_ARC4RANDOM
 		idx = arc4random_uniform(ds.len);
+#else
+		idx = rand() % ds.len;
+#endif
 	idx = idx % ds.len;
 	path = ds.list[idx];
 
@@ -239,6 +243,10 @@ main()
 {
 	config_t cfg;
 	const char *cfg_path = PREFIX "/etc/hyena/hyena.conf";
+
+#if !HAVE_ARC4RANDOM
+	srand(time(NULL));
+#endif
 
 	config_init(&cfg);
 	if (!config_read_file(&cfg, cfg_path)) {
