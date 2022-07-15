@@ -1,0 +1,8 @@
+*.o
+hyena
+hyena.core
+hyena.sock
+config.h
+config.log
+Makefile.configure
+tags
