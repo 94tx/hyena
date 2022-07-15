@@ -1,96 +1,74 @@
-HYENA(7) - Miscellaneous Information Manual
+# hyena: randomized file delivery spotted butler
 
-# NAME
+## Description
+**hyena** is a CGI and FastCGI interface for randomized file delivery.
 
-**hyena** - randomized file delivery spotted butler
+## Installing
+**hyena** targets FreeBSD and OpenBSD as primary distributions, for
+instructions on installing and running on Linux, see
+[Installing on Linux](#installing-on-linux).
 
-# DESCRIPTION
+**hyena** requires the following libraries:
+- [kcgi](https://kristaps.bsd.lv/kcgi/)
+  - packaged on FreeBSD and OpenBSD as `kcgi`
+  - needs to be compiled from source on Linux, see [Installing on Linux](#installing-on-linux)
+- [libconfig](https://hyperrealm.github.io)
+  - packaged on FreeBSD and OpenBSD as `libconfig`
+  - packaged on Debian as `libconfig-dev`
+- `bmake` on Linux systems.
 
-**hyena**
-is a CGI and FastCGI interface for randomized file delivery over the internet.
+Replacing `make` with `bmake` if you're on a Linux system:
+```
+$ ./configure
+$ make
+$ sudo make install
+```
 
-# INSTALLING
+### Installing on Linux
+Linux usage requires special care as `kcgi` seems to be broken as `seccomp` support
+was pulled out of the library.
 
-**hyena**
-targets FreeBSD, OpenBSD and (hopefully) Linux, and requires
-[kcgi](https://kristaps.bsd.lv/kcgi/)
-and
-[libconfig](https://hyperrealm.github.io/libconfig/)
-.
+```
+$ cd /tmp
+$ wget https://kristaps.bsd.lv/kcgi/snapshots/kcgi.tgz
+$ tar xf kcgi.tgz
+$ cd kcgi-0.13.0
+$ ./configure
+$ sed -i 's/HAVE_SECCOMP_FILTER 1/HAVE_SECCOMP_FILTER 0/' config.h
+$ bmake
+$ bmake install
+```
 
-	./configure
-	make
-	make install
+After following these steps, you can proceed to compile as normal.
 
-On FreeBSD and OpenBSD,
-**hyena**
-is statically linked to make it easy to run in
-chroot(2)
-.
+## Deployment
+**hyena** detects if it's being run as a CGI or FastCGI worker, and it can be
+further configured with a configuration file commonly located at
+`/usr/local/etc/hyena/hyena.conf`.
 
-# DEPLOYMENT
+It is recommended to use `kfcgi` (from `kcgi`) to run as a FastCGI worker.
+```
+$ kfcgi -u www -s /var/run/hyena.sock \e
+        -U www -p /usr/local/www \e
+        -- /usr/local/bin/hyena
+```
 
-**hyena**
-automatically detects if it's being run as a CGI or FastCGI worker.
+Some example configurations for NGINX and OpenBSD `httpd` are listed below.
 
-**hyena**
-can be configured using a configuration file commonly located at
-*/usr/local/etc/hyena/hyena.conf*
+### NGINX web server
+```
+location / {
+    fastcgi_pass unix:/var/run/hyena.sock
+    fastcgi_split_path_info (/)(.*);
+    fastcgi_param PATH_INFO $fastcgi_path_info;
+    include fastcgi_params;
+}
+```
 
-The configuration file provided in the source tree can be
-used as an example, as it provides all the possible options the program can
-be configured with.
-
-## nginx
-
-Use
-kfcgi(8)
-to run
-**hyena**
-:
-
-	kfcgi -u www -s /var/run/hyena.sock \
-		-U www -p /usr/local/www \
-		-- /usr/local/bin/hyena
-
-Configure
-nginx(8)
-to serve
-**hyena**
-at the desired location, for example:
-
-	location / {
-		fastcgi_pass unix:/var/run/hyena.sock
-		fastcgi_split_path_info (/)(.*);
-		fastcgi_param PATH_INFO $fastcgi_path_info;
-		include fastcgi_params;
-	}
-
-## OpenBSD httpd
-
-Use
-kfcgi(8)
-to run
-**hyena**
-:
-
-	kfcgi -u www -s /var/www/run/hyena.sock \
-		-U www -p /usr/local/www \
-		-- /usr/local/bin/hyena
-
-Configure
-httpd(8)
-to serve
-**hyena**
-at the desired location, for example:
-
-	location "/*" {
-		request strip 1
-		fastcgi socket "/run/hyena.sock"
-	}
-
-# AUTHORS
-
-wolf &lt;[wolf@fastmail.co.uk](mailto:wolf@fastmail.co.uk)&gt;
-
-Debian - May 31, 2021
+### OpenBSD httpd
+```
+location "/*" {
+    request strip 1
+    fastcgi socket "/run/hyena.sock"
+}
+```
